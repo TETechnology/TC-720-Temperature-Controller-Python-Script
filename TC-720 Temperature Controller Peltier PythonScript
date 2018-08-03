@@ -1,0 +1,72 @@
+# TE Technology, INC.
+# Traverse City, Michigan
+# https://tetech.com/
+#
+# Download TC-720 Manual for complete command set at the website below 
+# https://tetech.com/product/tc-720/
+# 
+# Download the correct FTDI VCP drivers for your system at the website below
+# http://www.ftdichip.com/Drivers/VCP.htm
+# 
+# This basic code is for setting the temperature on the TC-720 temperature controller 
+# 
+# Only works on Python 2.7 as of this time -- 11:28 AM EST June 6th, 2018
+# 
+# You will need to install the pyserial package to communicate through the port
+# The line below is the pip install module command
+# pip install pyserial
+
+
+import serial
+# send set temperature of 3.00 
+# see TC-720 Manual for command codes -- edit the line below to change the set temperature
+bstc=['*','1','c','0','1','2','c','8','a','\r'] # characters in this line must be in lowercase
+# stx relates to '*'
+# the command code is '1','c'
+# data being transmitted is '0','1','2','c'
+# checksum is '8','a'
+# return is '\r'
+
+# read control sensor temp1
+bst=['*','0','1','0','0','0','0','2','1','\r'] # characters in this line must be in lowercase
+# stx relates to '*'
+# the command code is '0','1'
+# data being transmitted is '0','0','0','0'
+# checksum is '2','1'
+# return is '\r'
+buf=[0,0,0,0,0,0,0,0,0,0,0,0,0]
+
+def hexc2dec(bufp):
+        newval=0
+        divvy=4096
+        for pn in range (1,5):
+                vally=ord(bufp[pn])
+                if(vally < 97):
+                        subby=48
+                else:
+                        subby=87
+                newval+=((ord(bufp[pn])-subby)*divvy)
+                divvy/=16
+                if(newval > 32767):
+                        newval=newval-65536
+        return newval
+# change to the port that is connected to the TC-720 Temperature Controller
+# this is a sample application used to demonstrate the TC-720 serial protocol
+ser=serial.Serial('com5', 230400, timeout=1)
+for pn in range(0,10):
+        ser.write((bstc[pn]))
+        # customer's have noticed an improved communication from the controller with a 4 millisecond delay
+        # this delay is optional, however feel free to attempt it in case of any communication problems
+for pn in range(0,8):
+        buf[pn]=ser.read(1)
+        print(buf[pn])
+for pn in range(0,10):
+        ser.write((bst[pn]))
+for pn in range(0,8):
+        buf[pn]=ser.read(1)
+        print(buf[pn])
+ser.close()
+temp1=hexc2dec(buf)
+print temp1/100.0 #this prints the current read temperature
+wait=input("PORT CLOSED")
+
